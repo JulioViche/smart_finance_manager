@@ -1,15 +1,15 @@
-# Smart Finance Manager - Data Model Documentation
+# Smart Finance Manager - Documentación del Modelo de Datos
 
-## Overview
+## Descripción General
 Este documento describe el modelo de datos de la aplicación Smart Finance Manager, que utiliza Firebase Firestore como base de datos NoSQL.
 
-## Collections
+## Colecciones
 
-### 1. Users Collection (`users`)
+### 1. Colección Users (`users`)
 
 Almacena la información de los usuarios de la aplicación.
 
-#### Fields:
+#### Campos:
 | Campo                               | Tipo      | Descripción                                    |
 | ----------------------------------- | --------- | ---------------------------------------------- |
 | `auth_provider`                     | String    | Proveedor de autenticación (ej: "google")      |
@@ -22,7 +22,7 @@ Almacena la información de los usuarios de la aplicación.
 | `preferences.notifications_enabled` | Boolean   | Indica si las notificaciones están habilitadas |
 | `preferences.theme`                 | String    | Tema de la aplicación (ej: "dark")             |
 
-#### Example Document:
+#### Documento de Ejemplo:
 ```json
 {
   "auth_provider": "google",
@@ -40,11 +40,11 @@ Almacena la información de los usuarios de la aplicación.
 
 ---
 
-### 2. Categories Collection (`categories`)
+### 2. Colección Categories (`categories`)
 
 Almacena las categorías de transacciones (ingresos y gastos).
 
-#### Fields:
+#### Campos:
 | Campo       | Tipo    | Descripción                                  |
 | ----------- | ------- | -------------------------------------------- |
 | `color_hex` | String  | Color en formato hexadecimal (ej: "#F00000") |
@@ -53,7 +53,7 @@ Almacena las categorías de transacciones (ingresos y gastos).
 | `name`      | String  | Nombre de la categoría                       |
 | `type`      | String  | Tipo de categoría: "expense" o "income"      |
 
-#### Example Document:
+#### Documento de Ejemplo:
 ```json
 {
   "color_hex": "#F00000",
@@ -66,11 +66,11 @@ Almacena las categorías de transacciones (ingresos y gastos).
 
 ---
 
-### 3. Budgets Collection (`budgets`)
+### 3. Colección Budgets (`budgets`)
 
 Almacena los presupuestos configurados por los usuarios para diferentes categorías.
 
-#### Fields:
+#### Campos:
 | Campo             | Tipo   | Descripción                             |
 | ----------------- | ------ | --------------------------------------- |
 | `alert_threshold` | Number | Umbral de alerta (0-1, donde 0.3 = 30%) |
@@ -79,7 +79,7 @@ Almacena los presupuestos configurados por los usuarios para diferentes categor�
 | `period`          | String | Período del presupuesto (ej: "mensual") |
 | `user_id`         | String | Referencia al ID del usuario            |
 
-#### Example Document:
+#### Documento de Ejemplo:
 ```json
 {
   "alert_threshold": 0.3,
@@ -92,11 +92,11 @@ Almacena los presupuestos configurados por los usuarios para diferentes categor�
 
 ---
 
-### 4. Transactions Collection (`transactions`)
+### 4. Colección Transactions (`transactions`)
 
 Almacena todas las transacciones (ingresos y gastos) de los usuarios.
 
-#### Fields:
+#### Campos:
 | Campo                | Tipo      | Descripción                                           |
 | -------------------- | --------- | ----------------------------------------------------- |
 | `amount`             | Number    | Monto de la transacción                               |
@@ -110,7 +110,7 @@ Almacena todas las transacciones (ingresos y gastos) de los usuarios.
 | `updated_at`         | Timestamp | Fecha y hora de última actualización                  |
 | `user_id`            | String    | Referencia al ID del usuario                          |
 
-#### Example Document:
+#### Documento de Ejemplo:
 ```json
 {
   "amount": 200,
@@ -128,9 +128,9 @@ Almacena todas las transacciones (ingresos y gastos) de los usuarios.
 
 ---
 
-## Relationships
+## Relaciones
 
-### Entity Relationship Diagram
+### Diagrama de Relaciones entre Entidades
 
 ```
 Users (1) ----< (N) Transactions
@@ -139,7 +139,7 @@ Categories (1) ----< (N) Transactions
 Categories (1) ----< (N) Budgets
 ```
 
-### Relationship Details:
+### Detalles de las Relaciones:
 
 1. **Users → Transactions**: Un usuario puede tener múltiples transacciones
    - Campo de relación: `transactions.user_id` → `users.{id}`
@@ -155,9 +155,9 @@ Categories (1) ----< (N) Budgets
 
 ---
 
-## Data Types Reference
+## Referencia de Tipos de Datos
 
-| Firestore Type | Descripción                                 |
+| Tipo Firestore | Descripción                                 |
 | -------------- | ------------------------------------------- |
 | String         | Cadena de texto                             |
 | Number         | Número (entero o decimal)                   |
@@ -168,25 +168,25 @@ Categories (1) ----< (N) Budgets
 
 ---
 
-## Business Rules
+## Reglas de Negocio
 
-1. **Soft Delete**: Las transacciones utilizan el campo `is_deleted` para eliminación lógica
-2. **Timestamps**: Todas las colecciones principales mantienen registros de `created_at` y `updated_at`
-3. **References**: Las relaciones se almacenan como strings con la ruta completa (ej: `/users/aP8CIMEGo5YzMCnss660`)
-4. **Alert Threshold**: Los presupuestos tienen un umbral de alerta expresado como decimal (0.3 = 30%)
-5. **Location Tracking**: Las transacciones pueden incluir ubicación geográfica opcional
-6. **Receipt Storage**: Las transacciones pueden tener imágenes de recibos asociadas
+1. **Eliminación Lógica**: Las transacciones utilizan el campo `is_deleted` para eliminación lógica
+2. **Marcas de Tiempo**: Todas las colecciones principales mantienen registros de `created_at` y `updated_at`
+3. **Referencias**: Las relaciones se almacenan como strings con la ruta completa (ej: `/users/aP8CIMEGo5YzMCnss660`)
+4. **Umbral de Alerta**: Los presupuestos tienen un umbral de alerta expresado como decimal (0.3 = 30%)
+5. **Seguimiento de Ubicación**: Las transacciones pueden incluir ubicación geográfica opcional
+6. **Almacenamiento de Recibos**: Las transacciones pueden tener imágenes de recibos asociadas
 
 ---
 
-## Screenshots Reference
+## Referencia de Capturas de Pantalla
 
 Las siguientes capturas de pantalla muestran ejemplos reales de documentos en cada colección:
 
-1. **Budgets Collection**: Muestra la configuración de presupuestos con umbrales de alerta
-2. **Categories Collection**: Muestra categorías con colores e íconos personalizados
-3. **Transactions Collection**: Muestra transacciones con ubicación y timestamps
-4. **Users Collection**: Muestra perfiles de usuario con preferencias anidadas
+1. **Colección Budgets**: Muestra la configuración de presupuestos con umbrales de alerta
+2. **Colección Categories**: Muestra categorías con colores e íconos personalizados
+3. **Colección Transactions**: Muestra transacciones con ubicación y timestamps
+4. **Colección Users**: Muestra perfiles de usuario con preferencias anidadas
 
 ---
 
