@@ -99,14 +99,17 @@ class TransactionListItem extends StatelessWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          dateFormatter.format(transaction.date),
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 13,
+                        Flexible(
+                          child: Text(
+                            dateFormatter.format(transaction.date),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Icon(
                           Icons.access_time_rounded,
                           size: 14,

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'injection_container.dart' as di;
+import 'core/services/notification_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'features/transactions/presentation/pages/transactions_page.dart';
+import 'features/budgets/presentation/bloc/budget_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +19,14 @@ void main() async {
   // Inicializar Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Inicializar datos de localización para formateo de fechas en español
+  await initializeDateFormatting('es', null);
+
   // Inicializar inyección de dependencias
   await di.initializeDependencies();
+
+  // Inicializar servicio de notificaciones
+  await di.sl<NotificationService>().initialize();
 
   runApp(const MyApp());
 }
@@ -36,6 +45,10 @@ class MyApp extends StatelessWidget {
         // Proveedor global del TransactionBloc
         BlocProvider(
           create: (_) => di.sl<TransactionBloc>(),
+        ),
+        // Proveedor global del BudgetBloc
+        BlocProvider(
+          create: (_) => di.sl<BudgetBloc>(),
         ),
       ],
       child: MaterialApp(

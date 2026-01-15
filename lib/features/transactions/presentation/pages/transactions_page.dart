@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../budgets/presentation/pages/budgets_page.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../bloc/transaction_bloc.dart';
@@ -368,6 +370,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
               ),
               const SizedBox(height: 24),
+              // Opción de Presupuestos
+              ListTile(
+                leading: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Color(0xFF6366F1),
+                ),
+                title: const Text('Presupuestos'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const BudgetsPage(),
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              // Cerrar sesión
               ListTile(
                 leading: Icon(
                   Icons.logout_rounded,
@@ -379,7 +400,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implementar cierre de sesión
+                  context.read<AuthBloc>().add(const AuthSignOutRequested());
                 },
               ),
             ],

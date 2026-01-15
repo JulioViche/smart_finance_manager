@@ -26,8 +26,19 @@ import 'features/transactions/domain/usecases/get_transactions.dart';
 import 'features/transactions/domain/usecases/update_transaction.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
 
+// Budget Feature
+import 'features/budgets/data/datasources/budget_remote_data_source.dart';
+import 'features/budgets/data/repositories/budget_repository_impl.dart';
+import 'features/budgets/domain/repositories/budget_repository.dart';
+import 'features/budgets/domain/usecases/create_budget.dart';
+import 'features/budgets/domain/usecases/delete_budget.dart';
+import 'features/budgets/domain/usecases/get_budgets.dart';
+import 'features/budgets/domain/usecases/update_budget.dart';
+import 'features/budgets/presentation/bloc/budget_bloc.dart';
+
 // Core Services
 import 'core/services/location_service.dart';
+import 'core/services/notification_service.dart';
 
 /// Instancia global del contenedor de dependencias
 final sl = GetIt.instance;
@@ -103,6 +114,43 @@ Future<void> initializeDependencies() async {
   );
 
   //! =============================================
+  //! BUDGET FEATURE
+  //! =============================================
+
+  // BLoC
+  sl.registerFactory(
+    () => BudgetBloc(
+      createBudget: sl(),
+      getBudgets: sl(),
+      updateBudget: sl(),
+      deleteBudget: sl(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CreateBudget(sl()));
+  sl.registerLazySingleton(() => GetBudgets(sl()));
+  sl.registerLazySingleton(() => UpdateBudget(sl()));
+  sl.registerLazySingleton(() => DeleteBudget(sl()));
+
+  // Repository
+  sl.registerLazySingleton<BudgetRepository>(
+    () => BudgetRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data Sources
+  sl.registerLazySingleton<BudgetRemoteDataSource>(
+    () => BudgetRemoteDataSourceImpl(firestore: sl()),
+  );
+
+  //! =============================================
+  //! CORE SERVICES
+  //! =============================================
+
+  sl.registerLazySingleton<LocationService>(() => LocationService());
+  sl.registerLazySingleton<NotificationService>(() => NotificationService());
+
+  //! =============================================
   //! EXTERNAL (Firebase, etc.)
   //! =============================================
 
@@ -110,3 +158,4 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
 }
+
