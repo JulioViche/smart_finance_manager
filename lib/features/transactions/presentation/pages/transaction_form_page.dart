@@ -2,6 +2,8 @@
 // Página para crear/editar transacciones
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/location_service.dart';
+import '../../../../injection_container.dart' as di;
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -10,7 +12,7 @@ import '../bloc/transaction_event.dart';
 import '../widgets/molecules/transaction_form.dart';
 
 /// Página para crear o editar transacciones
-class TransactionFormPage extends StatelessWidget {
+class TransactionFormPage extends StatefulWidget {
   final TransactionEntity? transactionToEdit;
 
   const TransactionFormPage({
@@ -18,7 +20,15 @@ class TransactionFormPage extends StatelessWidget {
     this.transactionToEdit,
   });
 
-  bool get isEditing => transactionToEdit != null;
+  @override
+  State<TransactionFormPage> createState() => _TransactionFormPageState();
+}
+
+class _TransactionFormPageState extends State<TransactionFormPage> {
+  final LocationService _locationService = di.sl<LocationService>();
+  bool _isSubmitting = false;
+
+  bool get isEditing => widget.transactionToEdit != null;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +41,7 @@ class TransactionFormPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded),
         ),
         title: Text(
@@ -51,8 +61,26 @@ class TransactionFormPage extends StatelessWidget {
             );
           }
 
+          if (_isSubmitting) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Guardando transacción...'),
+                  SizedBox(height: 8),
+                  Text(
+                    'Obteniendo ubicación...',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return TransactionForm(
-            initialTransaction: transactionToEdit,
+            initialTransaction: widget.transactionToEdit,
             currentUserId: authState.user.id,
             categories: _getCategories(),
             onSubmit: (data) => _handleSubmit(context, data),
@@ -63,16 +91,38 @@ class TransactionFormPage extends StatelessWidget {
     );
   }
 
-  void _handleSubmit(BuildContext context, TransactionFormData data) {
+  Future<void> _handleSubmit(BuildContext context, TransactionFormData data) async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    // Obtener ubicación actual
+    TransactionLocation? location;
+    if (!isEditing) {
+      final locationResult = await _locationService.getCurrentLocation();
+      if (!locationResult.isDefault) {
+        location = TransactionLocation(
+          latitude: locationResult.latitude,
+          longitude: locationResult.longitude,
+        );
+      }
+    } else {
+      // Mantener la ubicación original si estamos editando
+      location = widget.transactionToEdit?.location ?? TransactionLocation.empty;
+    }
+
+    if (!mounted) return;
+
     final bloc = context.read<TransactionBloc>();
 
     final transaction = TransactionEntity(
       id: data.id ?? '',
       amount: data.amount,
       categoryId: data.categoryId,
-      createdAt: isEditing ? transactionToEdit!.createdAt : DateTime.now(),
+      createdAt: isEditing ? widget.transactionToEdit!.createdAt : DateTime.now(),
       date: data.date,
       isDeleted: false,
+      location: location ?? TransactionLocation.empty,
       type: data.type,
       updatedAt: DateTime.now(),
       userId: data.userId,

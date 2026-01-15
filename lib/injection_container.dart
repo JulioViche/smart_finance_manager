@@ -26,6 +26,9 @@ import 'features/transactions/domain/usecases/get_transactions.dart';
 import 'features/transactions/domain/usecases/update_transaction.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
 
+// Core Services
+import 'core/services/location_service.dart';
+
 /// Instancia global del contenedor de dependencias
 final sl = GetIt.instance;
 
