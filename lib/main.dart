@@ -7,7 +7,8 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/pages/login_page.dart';
-import 'features/auth/presentation/pages/home_page.dart';
+import 'features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'features/transactions/presentation/pages/transactions_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,13 +33,17 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (_) => di.sl<AuthBloc>()..add(const AuthCheckRequested()),
         ),
+        // Proveedor global del TransactionBloc
+        BlocProvider(
+          create: (_) => di.sl<TransactionBloc>(),
+        ),
       ],
       child: MaterialApp(
         title: 'Smart Finance Manager',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.teal,
+            seedColor: const Color(0xFF6366F1), // Índigo
             brightness: Brightness.light,
           ),
           useMaterial3: true,
@@ -49,7 +54,7 @@ class MyApp extends StatelessWidget {
         ),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.teal,
+            seedColor: const Color(0xFF6366F1), // Índigo
             brightness: Brightness.dark,
           ),
           useMaterial3: true,
@@ -68,9 +73,9 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        // Usuario autenticado -> mostrar HomePage
+        // Usuario autenticado -> mostrar TransactionsPage
         if (state is AuthAuthenticated) {
-          return const HomePage();
+          return const TransactionsPage();
         }
 
         // Usuario no autenticado -> mostrar LoginPage
@@ -84,20 +89,38 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // Estado inicial o cargando -> mostrar splash
-        return const Scaffold(
+        return Scaffold(
+          backgroundColor: const Color(0xFF6366F1),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.account_balance_wallet,
-                  size: 80,
-                  color: Colors.teal,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    size: 64,
+                    color: Colors.white,
+                  ),
                 ),
-                SizedBox(height: 24),
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Cargando...'),
+                const SizedBox(height: 24),
+                const Text(
+                  'Smart Finance',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const CircularProgressIndicator(
+                  color: Colors.white,
+                ),
               ],
             ),
           ),
@@ -106,3 +129,4 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 }
+
