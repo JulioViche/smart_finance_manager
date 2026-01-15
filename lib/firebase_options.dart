@@ -59,4 +59,5 @@ class DefaultFirebaseOptions {
     projectId: 'smart-finance-manager-9106c',
     storageBucket: 'smart-finance-manager-9106c.firebasestorage.app',
   );
+
 }
