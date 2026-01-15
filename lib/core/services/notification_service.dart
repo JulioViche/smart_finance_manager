@@ -19,18 +19,20 @@ class NotificationService {
   /// Canal de notificaciones para Android
   static const AndroidNotificationChannel _budgetChannel =
       AndroidNotificationChannel(
-    'budget_alerts',
-    'Alertas de Presupuesto',
-    description: 'Notificaciones de gastos elevados y presupuestos',
-    importance: Importance.high,
-  );
+        'budget_alerts',
+        'Alertas de Presupuesto',
+        description: 'Notificaciones de gastos elevados y presupuestos',
+        importance: Importance.high,
+      );
 
   /// Inicializa el servicio de notificaciones
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     // Configuración para Android
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
     // Configuración para iOS
     const iosSettings = DarwinInitializationSettings(
@@ -52,7 +54,8 @@ class NotificationService {
     // Crear canal de notificaciones en Android
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_budgetChannel);
 
     // Solicitar permisos
@@ -70,7 +73,8 @@ class NotificationService {
     // Permisos para notificaciones locales en Android 13+
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
 
     // Permisos para Firebase Messaging
@@ -83,9 +87,18 @@ class NotificationService {
 
   /// Configura Firebase Cloud Messaging
   Future<void> _setupFirebaseMessaging() async {
-    // Obtener token FCM
-    final token = await _firebaseMessaging.getToken();
-    debugPrint('FCM Token: $token');
+    try {
+      // Obtener token FCM
+      final token = await _firebaseMessaging.getToken();
+      debugPrint('FCM Token: $token');
+    } catch (e) {
+      // SERVICE_NOT_AVAILABLE puede ocurrir cuando:
+      // - Google Play Services no está disponible
+      // - No hay conexión a internet
+      // - El emulador no tiene Google Play Services
+      debugPrint('Error al obtener FCM token: $e');
+      debugPrint('Las notificaciones push no estarán disponibles');
+    }
 
     // Manejar mensajes en foreground
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -97,7 +110,7 @@ class NotificationService {
   /// Maneja mensajes en primer plano
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('Mensaje FCM recibido en foreground: ${message.messageId}');
-    
+
     if (message.notification != null) {
       showLocalNotification(
         title: message.notification!.title ?? 'Notificación',
@@ -145,13 +158,7 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _localNotifications.show(
-      id,
-      title,
-      body,
-      details,
-      payload: payload,
-    );
+    await _localNotifications.show(id, title, body, details, payload: payload);
   }
 
   /// Muestra notificación de gasto elevado
@@ -162,11 +169,12 @@ class NotificationService {
     required double percentage,
   }) async {
     final percentageInt = (percentage * 100).toInt();
-    
+
     await showLocalNotification(
       id: categoryName.hashCode,
       title: '⚠️ Alerta de Gasto Elevado',
-      body: 'Has gastado \$${spentAmount.toStringAsFixed(2)} de '
+      body:
+          'Has gastado \$${spentAmount.toStringAsFixed(2)} de '
           '\$${limitAmount.toStringAsFixed(2)} ($percentageInt%) en $categoryName',
       payload: 'budget_alert:$categoryName',
     );
@@ -179,11 +187,12 @@ class NotificationService {
     required double limitAmount,
   }) async {
     final excess = spentAmount - limitAmount;
-    
+
     await showLocalNotification(
       id: categoryName.hashCode + 1000,
       title: '🚨 Presupuesto Excedido',
-      body: 'Has excedido tu presupuesto de $categoryName por '
+      body:
+          'Has excedido tu presupuesto de $categoryName por '
           '\$${excess.toStringAsFixed(2)}',
       payload: 'budget_exceeded:$categoryName',
     );
