@@ -37,8 +37,11 @@ import 'features/budgets/domain/usecases/update_budget.dart';
 import 'features/budgets/presentation/bloc/budget_bloc.dart';
 
 // Core Services
+import 'core/services/budget_alert_service.dart';
+import 'core/services/category_service.dart';
 import 'core/services/location_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/notification_storage_service.dart';
 
 /// Instancia global del contenedor de dependencias
 final sl = GetIt.instance;
@@ -93,6 +96,7 @@ Future<void> initializeDependencies() async {
       getTransactionById: sl(),
       updateTransaction: sl(),
       deleteTransaction: sl(),
+      budgetAlertService: sl(),
     ),
   );
 
@@ -147,8 +151,34 @@ Future<void> initializeDependencies() async {
   //! CORE SERVICES
   //! =============================================
 
+  // Notification Storage Service
+  sl.registerLazySingleton<NotificationStorageService>(
+    () => NotificationStorageService(),
+  );
+
+  // Category Service
+  sl.registerLazySingleton<CategoryService>(
+    () => CategoryService(firestore: sl<FirebaseFirestore>()),
+  );
+
+  // Location Service
   sl.registerLazySingleton<LocationService>(() => LocationService());
-  sl.registerLazySingleton<NotificationService>(() => NotificationService());
+  
+  // Notification Service
+  sl.registerLazySingleton<NotificationService>(() {
+    final notificationService = NotificationService();
+    notificationService.setStorageService(sl<NotificationStorageService>());
+    return notificationService;
+  });
+
+  // Budget Alert Service
+  sl.registerLazySingleton<BudgetAlertService>(
+    () => BudgetAlertService(
+      firestore: sl<FirebaseFirestore>(),
+      notificationService: sl<NotificationService>(),
+      categoryService: sl<CategoryService>(),
+    ),
+  );
 
   //! =============================================
   //! EXTERNAL (Firebase, etc.)

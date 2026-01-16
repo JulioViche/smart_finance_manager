@@ -3,6 +3,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import '../entities/notification_entity.dart';
+import 'notification_storage_service.dart';
 
 /// Servicio de notificaciones
 class NotificationService {
@@ -13,8 +15,15 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  
+  NotificationStorageService? _storageService;
 
   bool _isInitialized = false;
+  
+  /// Configura el servicio de almacenamiento
+  void setStorageService(NotificationStorageService storageService) {
+    _storageService = storageService;
+  }
 
   /// Canal de notificaciones para Android
   static const AndroidNotificationChannel _budgetChannel =
@@ -137,6 +146,7 @@ class NotificationService {
     required String body,
     String? payload,
     int id = 0,
+    NotificationType type = NotificationType.general,
   }) async {
     const androidDetails = AndroidNotificationDetails(
       'budget_alerts',
@@ -159,6 +169,14 @@ class NotificationService {
     );
 
     await _localNotifications.show(id, title, body, details, payload: payload);
+    
+    // Guardar en el historial
+    await _storageService?.addNotification(
+      title: title,
+      body: body,
+      type: type,
+      payload: payload,
+    );
   }
 
   /// Muestra notificación de gasto elevado
@@ -177,6 +195,7 @@ class NotificationService {
           'Has gastado \$${spentAmount.toStringAsFixed(2)} de '
           '\$${limitAmount.toStringAsFixed(2)} ($percentageInt%) en $categoryName',
       payload: 'budget_alert:$categoryName',
+      type: NotificationType.budgetAlert,
     );
   }
 
@@ -195,6 +214,7 @@ class NotificationService {
           'Has excedido tu presupuesto de $categoryName por '
           '\$${excess.toStringAsFixed(2)}',
       payload: 'budget_exceeded:$categoryName',
+      type: NotificationType.budgetExceeded,
     );
   }
 

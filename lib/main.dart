@@ -5,6 +5,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'injection_container.dart' as di;
 import 'core/services/notification_service.dart';
+import 'core/services/notification_storage_service.dart';
+import 'core/services/category_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -25,7 +27,9 @@ void main() async {
   // Inicializar inyección de dependencias
   await di.initializeDependencies();
 
-  // Inicializar servicio de notificaciones
+  // Inicializar servicios
+  await di.sl<NotificationStorageService>().initialize();
+  await di.sl<CategoryService>().initialize();
   await di.sl<NotificationService>().initialize();
 
   runApp(const MyApp());

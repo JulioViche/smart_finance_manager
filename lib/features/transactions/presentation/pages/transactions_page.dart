@@ -2,11 +2,15 @@
 // Página principal de transacciones con AppBar y navegación
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/category_service.dart' hide CategoryData;
+import '../../../../core/services/notification_storage_service.dart';
+import '../../../../injection_container.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../budgets/presentation/pages/budgets_page.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../bloc/transaction_bloc.dart';
@@ -88,6 +92,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
         },
       ),
       actions: [
+        // Botón de notificaciones
+        _NotificationButton(),
         // Botón de filtrar
         IconButton(
           onPressed: _showFilterDialog,
@@ -417,16 +423,67 @@ class _TransactionsPageState extends State<TransactionsPage> {
     }
     return name.isNotEmpty ? name[0].toUpperCase() : 'U';
   }
-
   /// Resuelve datos de categoría desde su ID
-  /// TODO: Conectar con servicio real de categorías
   CategoryData _resolveCategoryData(String categoryId) {
-    // Por ahora retornamos datos por defecto
-    // En el futuro se conectará con el repositorio de categorías
-    return const CategoryData(
-      name: 'General',
-      iconCode: 'other',
-      colorHex: '#6366F1',
+    final category = sl<CategoryService>().getCategory(categoryId);
+    return CategoryData(
+      name: category.name,
+      iconCode: category.iconCode,
+      colorHex: category.colorHex,
+    );
+  }
+}
+
+/// Botón de notificaciones con badge
+class _NotificationButton extends StatefulWidget {
+  @override
+  State<_NotificationButton> createState() => _NotificationButtonState();
+}
+
+class _NotificationButtonState extends State<_NotificationButton> {
+  late final NotificationStorageService _storageService;
+
+  @override
+  void initState() {
+    super.initState();
+    _storageService = sl<NotificationStorageService>();
+    _storageService.addListener(_onNotificationsChanged);
+  }
+
+  @override
+  void dispose() {
+    _storageService.removeListener(_onNotificationsChanged);
+    super.dispose();
+  }
+
+  void _onNotificationsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = _storageService.unreadCount;
+    
+    return IconButton(
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const NotificationsPage(),
+          ),
+        );
+      },
+      icon: Badge(
+        isLabelVisible: unreadCount > 0,
+        label: Text(
+          unreadCount > 9 ? '9+' : unreadCount.toString(),
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        child: const Icon(Icons.notifications_outlined),
+      ),
+      tooltip: 'Notificaciones',
     );
   }
 }

@@ -2,6 +2,8 @@
 // Formulario para crear/editar presupuestos
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/category_service.dart';
+import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/budget_entity.dart';
@@ -27,21 +29,13 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
   final _limitController = TextEditingController();
 
   String? _selectedCategoryId;
-  double _alertThreshold = 0.3;
+  double _alertThreshold = 0.8;
   String _selectedPeriod = 'mensual';
 
   bool get _isEditing => widget.budgetToEdit != null;
 
-  // Categorías de ejemplo
-  // TODO: Cargar desde repositorio real de categorías
-  final List<Map<String, String>> _categories = [
-    {'id': 'cat1', 'name': 'Comida', 'icon': 'food', 'color': '#F59E0B'},
-    {'id': 'cat2', 'name': 'Transporte', 'icon': 'transport', 'color': '#3B82F6'},
-    {'id': 'cat3', 'name': 'Entretenimiento', 'icon': 'entertainment', 'color': '#8B5CF6'},
-    {'id': 'cat4', 'name': 'Compras', 'icon': 'shopping', 'color': '#EC4899'},
-    {'id': 'cat5', 'name': 'Salud', 'icon': 'health', 'color': '#10B981'},
-    {'id': 'cat6', 'name': 'Educación', 'icon': 'education', 'color': '#6366F1'},
-  ];
+  /// Obtiene las categorías de gastos desde CategoryService
+  List<CategoryData> get _categories => sl<CategoryService>().expenseCategories;
 
   final List<String> _periods = ['semanal', 'mensual', 'anual'];
 
@@ -198,13 +192,18 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
       spacing: 8,
       runSpacing: 8,
       children: _categories.map((category) {
-        final isSelected = _selectedCategoryId == category['id'];
-        final color = Color(
-          int.parse(category['color']!.replaceFirst('#', '0xFF')),
-        );
+        final isSelected = _selectedCategoryId == category.id;
+        Color color;
+        try {
+          color = Color(
+            int.parse(category.colorHex.replaceFirst('#', '0xFF')),
+          );
+        } catch (_) {
+          color = const Color(0xFF6366F1);
+        }
 
         return GestureDetector(
-          onTap: () => setState(() => _selectedCategoryId = category['id']),
+          onTap: () => setState(() => _selectedCategoryId = category.id),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -220,13 +219,13 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  _getIconData(category['icon']!),
+                  _getIconData(category.iconCode),
                   color: isSelected ? color : colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  category['name']!,
+                  category.name,
                   style: TextStyle(
                     color: isSelected ? color : colorScheme.onSurfaceVariant,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

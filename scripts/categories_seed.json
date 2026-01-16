@@ -1,0 +1,108 @@
+{
+  "categories": {
+    "cat_food": {
+      "id": "cat_food",
+      "name": "Comida",
+      "type": "expense",
+      "iconCode": "food",
+      "colorHex": "#F97316",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_transport": {
+      "id": "cat_transport",
+      "name": "Transporte",
+      "type": "expense",
+      "iconCode": "transport",
+      "colorHex": "#3B82F6",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_shopping": {
+      "id": "cat_shopping",
+      "name": "Compras",
+      "type": "expense",
+      "iconCode": "shopping",
+      "colorHex": "#EC4899",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_entertainment": {
+      "id": "cat_entertainment",
+      "name": "Entretenimiento",
+      "type": "expense",
+      "iconCode": "entertainment",
+      "colorHex": "#8B5CF6",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_health": {
+      "id": "cat_health",
+      "name": "Salud",
+      "type": "expense",
+      "iconCode": "health",
+      "colorHex": "#10B981",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_home": {
+      "id": "cat_home",
+      "name": "Hogar",
+      "type": "expense",
+      "iconCode": "home",
+      "colorHex": "#F59E0B",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_utilities": {
+      "id": "cat_utilities",
+      "name": "Servicios",
+      "type": "expense",
+      "iconCode": "utilities",
+      "colorHex": "#6366F1",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_other_expense": {
+      "id": "cat_other_expense",
+      "name": "Otros",
+      "type": "expense",
+      "iconCode": "other",
+      "colorHex": "#64748B",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_salary": {
+      "id": "cat_salary",
+      "name": "Salario",
+      "type": "income",
+      "iconCode": "salary",
+      "colorHex": "#10B981",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_freelance": {
+      "id": "cat_freelance",
+      "name": "Freelance",
+      "type": "income",
+      "iconCode": "freelance",
+      "colorHex": "#6366F1",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_investment": {
+      "id": "cat_investment",
+      "name": "Inversiones",
+      "type": "income",
+      "iconCode": "investment",
+      "colorHex": "#F59E0B",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_bonus": {
+      "id": "cat_bonus",
+      "name": "Bonos",
+      "type": "income",
+      "iconCode": "bonus",
+      "colorHex": "#EC4899",
+      "createdAt": "2026-01-15T00:00:00Z"
+    },
+    "cat_other_income": {
+      "id": "cat_other_income",
+      "name": "Otros",
+      "type": "income",
+      "iconCode": "other",
+      "colorHex": "#64748B",
+      "createdAt": "2026-01-15T00:00:00Z"
+    }
+  }
+}

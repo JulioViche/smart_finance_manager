@@ -2,8 +2,13 @@
 // Página principal de presupuestos
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/category_service.dart';
+import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../transactions/presentation/bloc/transaction_bloc.dart';
+import '../../../transactions/presentation/bloc/transaction_state.dart';
+import '../../../transactions/domain/entities/transaction_entity.dart';
 import '../bloc/budget_bloc.dart';
 import '../bloc/budget_event.dart';
 import '../bloc/budget_state.dart';
@@ -21,14 +26,23 @@ class BudgetsPage extends StatefulWidget {
 }
 
 class _BudgetsPageState extends State<BudgetsPage> {
-  // Mapa temporal de gastos por categoría
-  // TODO: Conectar con TransactionBloc para obtener gastos reales
-  final Map<String, double> _categorySpending = {};
+  /// Mapa de gastos por categoría (calculado de TransactionBloc)
+  Map<String, double> _categorySpending = {};
+  bool _hasCalculatedSpending = false;
 
   @override
   void initState() {
     super.initState();
     _loadBudgets();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Calcular gastos después de que los widgets estén construidos
+    if (!_hasCalculatedSpending) {
+      _calculateCategorySpending();
+    }
   }
 
   void _loadBudgets() {
@@ -38,6 +52,32 @@ class _BudgetsPageState extends State<BudgetsPage> {
       context.read<BudgetBloc>().add(
             BudgetLoadRequested(userId: authState.user.id),
           );
+    }
+  }
+
+  /// Calcula los gastos por categoría desde las transacciones
+  void _calculateCategorySpending() {
+    final transactionState = context.read<TransactionBloc>().state;
+    if (transactionState is TransactionLoaded) {
+      final spending = <String, double>{};
+      
+      // Filtrar solo gastos del mes actual
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      
+      for (final tx in transactionState.transactions) {
+        if (tx.type == TransactionType.expense && 
+            !tx.date.isBefore(startOfMonth)) {
+          spending[tx.categoryId] = (spending[tx.categoryId] ?? 0) + tx.amount;
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _categorySpending = spending;
+          _hasCalculatedSpending = true;
+        });
+      }
     }
   }
 
@@ -63,58 +103,76 @@ class _BudgetsPageState extends State<BudgetsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: BlocConsumer<BudgetBloc, BudgetState>(
-        listener: (context, state) {
-          if (state is BudgetOperationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: const Color(0xFF10B981),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+      body: MultiBlocListener(
+        listeners: [
+          // Recalcular gastos cuando las transacciones cambien
+          BlocListener<TransactionBloc, TransactionState>(
+            listener: (context, state) {
+              if (state is TransactionLoaded) {
+                _calculateCategorySpending();
+              }
+            },
+          ),
+          // Manejar estados del BudgetBloc
+          BlocListener<BudgetBloc, BudgetState>(
+            listener: (context, state) {
+              if (state is BudgetOperationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: const Color(0xFF10B981),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              } else if (state is BudgetError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: const Color(0xFFEF4444),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+        child: BlocBuilder<BudgetBloc, BudgetState>(
+          builder: (context, state) {
+            if (state is BudgetLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            List<BudgetEntity> budgets = [];
+            if (state is BudgetLoaded) {
+              budgets = state.budgets;
+            } else if (state is BudgetOperationSuccess) {
+              budgets = state.budgets;
+            }
+
+            return BudgetList(
+              budgets: budgets,
+              categoryResolver: _resolveCategoryData,
+              spentResolver: _getSpentAmount,
+              onBudgetTap: _onBudgetTap,
+              onBudgetLongPress: _showBudgetOptions,
+              onRefresh: () {
+                _loadBudgets();
+                _calculateCategorySpending();
+              },
+              emptyStateAction: FilledButton.icon(
+                onPressed: () => _navigateToForm(context),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Crear presupuesto'),
               ),
             );
-          } else if (state is BudgetError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: const Color(0xFFEF4444),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is BudgetLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          List<BudgetEntity> budgets = [];
-          if (state is BudgetLoaded) {
-            budgets = state.budgets;
-          } else if (state is BudgetOperationSuccess) {
-            budgets = state.budgets;
-          }
-
-          return BudgetList(
-            budgets: budgets,
-            categoryResolver: _resolveCategoryData,
-            spentResolver: _getSpentAmount,
-            onBudgetTap: _onBudgetTap,
-            onBudgetLongPress: _showBudgetOptions,
-            onRefresh: _loadBudgets,
-            emptyStateAction: FilledButton.icon(
-              onPressed: () => _navigateToForm(context),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Crear presupuesto'),
-            ),
-          );
-        },
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToForm(context),
@@ -218,18 +276,17 @@ class _BudgetsPageState extends State<BudgetsPage> {
     );
   }
 
-  /// Resuelve datos de categoría
-  /// TODO: Conectar con repositorio de categorías real
+  /// Resuelve datos de categoría usando CategoryService
   BudgetCategoryData _resolveCategoryData(String categoryId) {
-    return const BudgetCategoryData(
-      name: 'General',
-      iconCode: 'other',
-      colorHex: '#6366F1',
+    final category = sl<CategoryService>().getCategory(categoryId);
+    return BudgetCategoryData(
+      name: category.name,
+      iconCode: category.iconCode,
+      colorHex: category.colorHex,
     );
   }
 
-  /// Obtiene el gasto de una categoría
-  /// TODO: Conectar con TransactionBloc
+  /// Obtiene el gasto de una categoría desde las transacciones
   double _getSpentAmount(String categoryId) {
     return _categorySpending[categoryId] ?? 0.0;
   }

@@ -1,5 +1,6 @@
 // Presentation Layer - Transaction BLoC
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/budget_alert_service.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../../domain/usecases/create_transaction.dart';
@@ -17,6 +18,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final GetTransactionById getTransactionById;
   final UpdateTransaction updateTransaction;
   final DeleteTransaction deleteTransaction;
+  final BudgetAlertService budgetAlertService;
 
   /// ID del usuario actual (se obtiene del estado global de auth)
   String? _currentUserId;
@@ -27,6 +29,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     required this.getTransactionById,
     required this.updateTransaction,
     required this.deleteTransaction,
+    required this.budgetAlertService,
   }) : super(const TransactionInitial()) {
     // Registrar handlers de eventos
     on<TransactionLoadRequested>(_onLoadRequested);
@@ -84,6 +87,14 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
           message: 'Transacción creada exitosamente',
           transaction: transaction,
         ));
+
+        // Verificar alertas de presupuesto para gastos
+        if (transaction.type == TransactionType.expense && _currentUserId != null) {
+          await budgetAlertService.checkBudgetAlerts(
+            transaction: transaction,
+            userId: _currentUserId!,
+          );
+        }
 
         // Recargar lista si teníamos un estado previo
         if (currentState is TransactionLoaded) {
