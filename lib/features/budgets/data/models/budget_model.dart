@@ -62,6 +62,7 @@ class BudgetModel extends BudgetEntity {
       'limit_amount': limitAmount,
       'alert_threshold': alertThreshold,
       'period': period,
+      'is_active': true,
       'created_at': createdAt != null 
           ? Timestamp.fromDate(createdAt!) 
           : FieldValue.serverTimestamp(),

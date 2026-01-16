@@ -33,8 +33,8 @@ class BudgetAlertService {
       // Obtener el presupuesto para esta categoría
       final budgetQuery = await _firestore
           .collection('budgets')
-          .where('user_id', isEqualTo: userId)
-          .where('category_id', isEqualTo: transaction.categoryId)
+          .where('user_id', isEqualTo: '/users/$userId')
+          .where('category_id', isEqualTo: '/categories/${transaction.categoryId}')
           .where('is_active', isEqualTo: true)
           .limit(1)
           .get();
