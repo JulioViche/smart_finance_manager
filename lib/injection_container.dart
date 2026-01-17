@@ -42,6 +42,19 @@ import 'core/services/category_service.dart';
 import 'core/services/location_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/notification_storage_service.dart';
+import 'core/services/scheduled_payment_notification_manager.dart';
+
+// Scheduled Payments Feature
+import 'features/scheduled_payments/data/datasources/scheduled_payment_remote_data_source.dart';
+import 'features/scheduled_payments/data/repositories/scheduled_payment_repository_impl.dart';
+import 'features/scheduled_payments/domain/repositories/scheduled_payment_repository.dart';
+import 'features/scheduled_payments/domain/usecases/create_scheduled_payment.dart';
+import 'features/scheduled_payments/domain/usecases/delete_scheduled_payment.dart';
+import 'features/scheduled_payments/domain/usecases/get_scheduled_payments.dart';
+import 'features/scheduled_payments/domain/usecases/get_upcoming_payments.dart';
+import 'features/scheduled_payments/domain/usecases/mark_payment_as_paid.dart';
+import 'features/scheduled_payments/domain/usecases/update_scheduled_payment.dart';
+import 'features/scheduled_payments/presentation/bloc/scheduled_payment_bloc.dart';
 
 /// Instancia global del contenedor de dependencias
 final sl = GetIt.instance;
@@ -187,5 +200,45 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => FirebaseAuth.instance);
   sl.registerLazySingleton(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
-}
 
+  //! =============================================
+  //! SCHEDULED PAYMENTS FEATURE
+  //! =============================================
+
+  // BLoC
+  sl.registerFactory(
+    () => ScheduledPaymentBloc(
+      createScheduledPayment: sl(),
+      getScheduledPayments: sl(),
+      updateScheduledPayment: sl(),
+      deleteScheduledPayment: sl(),
+      markPaymentAsPaid: sl(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CreateScheduledPayment(sl()));
+  sl.registerLazySingleton(() => GetScheduledPayments(sl()));
+  sl.registerLazySingleton(() => UpdateScheduledPayment(sl()));
+  sl.registerLazySingleton(() => DeleteScheduledPayment(sl()));
+  sl.registerLazySingleton(() => GetUpcomingPayments(sl()));
+  sl.registerLazySingleton(() => MarkPaymentAsPaid(sl()));
+
+  // Repository
+  sl.registerLazySingleton<ScheduledPaymentRepository>(
+    () => ScheduledPaymentRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data Sources
+  sl.registerLazySingleton<ScheduledPaymentRemoteDataSource>(
+    () => ScheduledPaymentRemoteDataSourceImpl(firestore: sl()),
+  );
+
+  // Notification Manager
+  sl.registerLazySingleton<ScheduledPaymentNotificationManager>(
+    () => ScheduledPaymentNotificationManager(
+      getUpcomingPayments: sl(),
+      notificationService: sl<NotificationService>(),
+    ),
+  );
+}

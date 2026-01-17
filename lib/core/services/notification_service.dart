@@ -67,6 +67,13 @@ class NotificationService {
         >()
         ?.createNotificationChannel(_budgetChannel);
 
+    // Crear canal de recordatorios de pago en Android
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_paymentChannel);
+
     // Solicitar permisos
     await _requestPermissions();
 
@@ -221,5 +228,67 @@ class NotificationService {
   /// Obtiene el token FCM actual
   Future<String?> getFCMToken() async {
     return await _firebaseMessaging.getToken();
+  }
+
+  /// Canal de notificaciones para recordatorios de pago
+  static const AndroidNotificationChannel _paymentChannel =
+      AndroidNotificationChannel(
+        'payment_reminders',
+        'Recordatorios de Pago',
+        description: 'Notificaciones de pagos próximos y vencidos',
+        importance: Importance.high,
+      );
+
+  /// Muestra notificación de pago próximo
+  Future<void> showUpcomingPaymentAlert({
+    required String paymentId,
+    required String paymentName,
+    required double amount,
+    required int daysUntilDue,
+  }) async {
+    String daysText;
+    if (daysUntilDue == 0) {
+      daysText = 'vence hoy';
+    } else if (daysUntilDue == 1) {
+      daysText = 'vence mañana';
+    } else {
+      daysText = 'vence en $daysUntilDue días';
+    }
+
+    await showLocalNotification(
+      id: paymentId.hashCode + 2000,
+      title: '📅 Pago Próximo',
+      body: '$paymentName (\$${amount.toStringAsFixed(2)}) $daysText',
+      payload: 'upcoming_payment:$paymentId',
+      type: NotificationType.upcomingPayment,
+    );
+  }
+
+  /// Muestra notificación de pago vencido
+  Future<void> showOverduePaymentAlert({
+    required String paymentId,
+    required String paymentName,
+    required double amount,
+    required int daysOverdue,
+  }) async {
+    await showLocalNotification(
+      id: paymentId.hashCode + 3000,
+      title: '⚠️ Pago Vencido',
+      body: '$paymentName (\$${amount.toStringAsFixed(2)}) está vencido hace $daysOverdue días',
+      payload: 'overdue_payment:$paymentId',
+      type: NotificationType.overduePayment,
+    );
+  }
+
+  /// Cancela una notificación programada
+  Future<void> cancelNotification(int id) async {
+    await _localNotifications.cancel(id);
+  }
+
+  /// Cancela todas las notificaciones de un pago específico
+  Future<void> cancelPaymentNotifications(String paymentId) async {
+    // Cancelar notificaciones de pago próximo y vencido
+    await _localNotifications.cancel(paymentId.hashCode + 2000);
+    await _localNotifications.cancel(paymentId.hashCode + 3000);
   }
 }

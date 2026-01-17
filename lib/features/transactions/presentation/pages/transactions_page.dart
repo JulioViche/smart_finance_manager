@@ -11,6 +11,12 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../budgets/presentation/pages/budgets_page.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
+import '../../../scheduled_payments/presentation/bloc/scheduled_payment_bloc.dart';
+import '../../../scheduled_payments/presentation/bloc/scheduled_payment_event.dart';
+import '../../../scheduled_payments/presentation/bloc/scheduled_payment_state.dart';
+import '../../../scheduled_payments/domain/entities/scheduled_payment_entity.dart';
+import '../../../scheduled_payments/presentation/widgets/scheduled_payment_card.dart';
+import '../../../scheduled_payments/presentation/pages/scheduled_payment_form_page.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../bloc/transaction_bloc.dart';
@@ -28,11 +34,22 @@ class TransactionsPage extends StatefulWidget {
   State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> {
+class _TransactionsPageState extends State<TransactionsPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadTransactions();
+    _loadScheduledPayments();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   void _loadTransactions() {
@@ -46,6 +63,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
     }
   }
 
+  void _loadScheduledPayments() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<ScheduledPaymentBloc>().setCurrentUserId(authState.user.id);
+      context.read<ScheduledPaymentBloc>().add(
+            ScheduledPaymentLoadRequested(userId: authState.user.id),
+          );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -53,7 +80,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: _buildAppBar(context, colorScheme),
-      body: _buildBody(context),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTransactionsBody(context),
+          _buildScheduledPaymentsBody(context),
+        ],
+      ),
       floatingActionButton: _buildFAB(context),
     );
   }
@@ -130,10 +163,21 @@ class _TransactionsPageState extends State<TransactionsPage> {
           },
         ),
       ],
+      bottom: TabBar(
+        controller: _tabController,
+        labelColor: const Color(0xFF6366F1),
+        unselectedLabelColor: colorScheme.onSurfaceVariant,
+        indicatorColor: const Color(0xFF6366F1),
+        indicatorWeight: 3,
+        tabs: const [
+          Tab(text: 'Historial', icon: Icon(Icons.receipt_long_rounded)),
+          Tab(text: 'Programados', icon: Icon(Icons.schedule_rounded)),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildTransactionsBody(BuildContext context) {
     return BlocConsumer<TransactionBloc, TransactionState>(
       listener: (context, state) {
         if (state is TransactionOperationSuccess) {
@@ -210,16 +254,303 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  Widget _buildFAB(BuildContext context) {
-    return FloatingActionButton.extended(
-      onPressed: () => _navigateToForm(context),
-      backgroundColor: const Color(0xFF6366F1),
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.add_rounded),
-      label: const Text(
-        'Nueva',
-        style: TextStyle(fontWeight: FontWeight.w600),
+  Widget _buildScheduledPaymentsBody(BuildContext context) {
+    return BlocConsumer<ScheduledPaymentBloc, ScheduledPaymentState>(
+      listener: (context, state) {
+        if (state is ScheduledPaymentOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        } else if (state is ScheduledPaymentError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is ScheduledPaymentLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        List<ScheduledPaymentEntity> payments = [];
+        if (state is ScheduledPaymentLoaded) {
+          payments = state.payments;
+        } else if (state is ScheduledPaymentOperationSuccess) {
+          payments = state.payments;
+        }
+
+        if (payments.isEmpty) {
+          return _buildScheduledEmptyState();
+        }
+
+        return _buildScheduledPaymentsList(payments);
+      },
+    );
+  }
+
+  Widget _buildScheduledEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.schedule_rounded,
+              size: 80,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Sin pagos programados',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Agrega tus pagos recurrentes para recibir recordatorios',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => _navigateToScheduledForm(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Crear pago programado'),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildScheduledPaymentsList(List<ScheduledPaymentEntity> payments) {
+    final overduePayments = payments.where((p) => p.isActive && p.isOverdue).toList();
+    final upcomingPayments = payments.where((p) => p.isActive && !p.isOverdue).toList();
+
+    return RefreshIndicator(
+      onRefresh: () async => _loadScheduledPayments(),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (overduePayments.isNotEmpty) ...[
+            _buildScheduledSectionHeader('Vencidos', const Color(0xFFEF4444), Icons.warning_rounded),
+            const SizedBox(height: 8),
+            ...overduePayments.map((payment) => _buildScheduledPaymentCard(payment)),
+            const SizedBox(height: 24),
+          ],
+          if (upcomingPayments.isNotEmpty) ...[
+            _buildScheduledSectionHeader('Próximos pagos', const Color(0xFF6366F1), Icons.schedule_rounded),
+            const SizedBox(height: 8),
+            ...upcomingPayments.map((payment) => _buildScheduledPaymentCard(payment)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduledSectionHeader(String title, Color color, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScheduledPaymentCard(ScheduledPaymentEntity payment) {
+    final category = sl<CategoryService>().getCategory(payment.categoryId);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ScheduledPaymentCard(
+        payment: payment,
+        categoryName: category.name,
+        categoryIcon: _getScheduledIconFromCode(category.iconCode),
+        categoryColor: Color(int.parse(category.colorHex.replaceFirst('#', '0xFF'))),
+        onTap: () => _navigateToScheduledForm(context, payment: payment),
+        onMarkPaid: () => _confirmMarkAsPaid(payment),
+        onLongPress: () => _showScheduledPaymentOptions(payment),
+      ),
+    );
+  }
+
+  IconData _getScheduledIconFromCode(String iconCode) {
+    switch (iconCode.toLowerCase()) {
+      case 'food': return Icons.restaurant_rounded;
+      case 'transport': return Icons.directions_car_rounded;
+      case 'shopping': return Icons.shopping_bag_rounded;
+      case 'entertainment': return Icons.movie_rounded;
+      case 'health': return Icons.health_and_safety_rounded;
+      case 'home': return Icons.home_rounded;
+      case 'utilities': return Icons.bolt_rounded;
+      default: return Icons.category_rounded;
+    }
+  }
+
+  void _navigateToScheduledForm(BuildContext context, {ScheduledPaymentEntity? payment}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ScheduledPaymentFormPage(paymentToEdit: payment),
+      ),
+    );
+  }
+
+  void _confirmMarkAsPaid(ScheduledPaymentEntity payment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Marcar como pagado'),
+        content: Text('¿Confirmas que has realizado el pago de ${payment.name} por \$${payment.amount.toStringAsFixed(2)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<ScheduledPaymentBloc>().add(
+                ScheduledPaymentMarkAsPaidRequested(paymentId: payment.id),
+              );
+            },
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showScheduledPaymentOptions(ScheduledPaymentEntity payment) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.outline.withAlpha(76),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981)),
+                title: const Text('Marcar como pagado'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmMarkAsPaid(payment);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_rounded, color: Color(0xFF6366F1)),
+                title: const Text('Editar'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _navigateToScheduledForm(context, payment: payment);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444)),
+                title: const Text('Eliminar', style: TextStyle(color: Color(0xFFEF4444))),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteScheduled(payment);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteScheduled(ScheduledPaymentEntity payment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar pago programado'),
+        content: const Text('¿Estás seguro de que deseas eliminar este pago programado?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<ScheduledPaymentBloc>().add(
+                ScheduledPaymentDeleteRequested(paymentId: payment.id),
+              );
+            },
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFAB(BuildContext context) {
+    // FAB cambia según la pestaña activa
+    return AnimatedBuilder(
+      animation: _tabController,
+      builder: (context, child) {
+        final isScheduledTab = _tabController.index == 1;
+        
+        return FloatingActionButton.extended(
+          onPressed: () {
+            if (isScheduledTab) {
+              _navigateToScheduledForm(context);
+            } else {
+              _navigateToForm(context);
+            }
+          },
+          backgroundColor: const Color(0xFF6366F1),
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_rounded),
+          label: Text(
+            isScheduledTab ? 'Nuevo Pago' : 'Nueva',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        );
+      },
     );
   }
 

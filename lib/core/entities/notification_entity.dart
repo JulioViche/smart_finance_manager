@@ -7,6 +7,8 @@ import 'package:equatable/equatable.dart';
 enum NotificationType {
   budgetAlert,
   budgetExceeded,
+  upcomingPayment,  // Pago próximo a vencer
+  overduePayment,   // Pago vencido
   general,
 }
 
